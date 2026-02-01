@@ -1,55 +1,95 @@
 import React, { useState } from 'react';
-// Import your firebase auth and database if needed
-// import { auth } from '../firebase'; 
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
+  // State for form inputs
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  
+  const navigate = useNavigate();
 
   const handleLogin = (e) => {
     e.preventDefault();
-    console.log("Logging in with:", email);
-    // Add your Firebase sign-in logic here
+    setError('');
+
+    // TEMPORARY BYPASS LOGIC:
+    // This allows you to enter the system without a live database connection.
+    if (email === "admin@uda.ug" && password === "123456") {
+      console.log("Login successful! Redirecting to dashboard...");
+      navigate('/math-gen'); // Make sure this matches the route in your App.js
+    } else {
+      setError("Invalid Email or Password. Hint: admin@uda.ug / 123456");
+    }
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-blue-50">
-      <div className="bg-white p-8 rounded-xl shadow-lg w-96 border-t-4 border-blue-900">
-        <h1 className="text-2xl font-black text-blue-900 text-center mb-6">UGANDA DIGITAL ACADEMY</h1>
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-sm font-bold text-gray-700">Email Address</label>
-            <input 
-              type="email" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mt-1 focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="teacher@uda.ac.ug"
-              required
-            />
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden border-t-8 border-blue-900">
+        <div className="p-8">
+          {/* Brand Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-black text-blue-900 tracking-tighter">
+              UGANDA DIGITAL ACADEMY
+            </h1>
+            <p className="text-sm text-gray-500 font-bold mt-1 uppercase tracking-widest">
+              Teacher Portal
+            </p>
           </div>
-          <div>
-            <label className="block text-sm font-bold text-gray-700">Password</label>
-            <input 
-              type="password" 
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-2 border border-gray-300 rounded mt-1 focus:ring-2 focus:ring-blue-500 outline-none"
-              placeholder="••••••••"
-              required
-            />
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 border border-red-200 text-center">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleLogin} className="space-y-6">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-900 focus:border-transparent outline-none transition"
+                placeholder="admin@uda.ug"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-2">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-gray-300 focus:ring-2 focus:ring-blue-900 focus:border-transparent outline-none transition"
+                placeholder="123456"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-blue-900 hover:bg-blue-800 text-white font-black py-4 rounded-xl shadow-lg transform transition active:scale-95"
+            >
+              SIGN IN TO PORTAL
+            </button>
+          </form>
+
+          <div className="mt-8 text-center">
+            <p className="text-xs text-gray-400">
+              © 2026 UGANDA DIGITAL ACADEMY • NEW CURRICULUM STANDARDS
+            </p>
           </div>
-          <button 
-            type="submit" 
-            className="w-full bg-blue-900 text-white font-bold py-2 rounded hover:bg-blue-800 transition shadow-md"
-          >
-            Sign In
-          </button>
-        </form>
+        </div>
       </div>
     </div>
   );
 };
 
-// THIS IS THE LINE THAT FIXES YOUR VERCEL BUILD ERROR
 export default Login;
