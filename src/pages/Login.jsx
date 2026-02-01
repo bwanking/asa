@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+
 // Topics aligned with the Ugandan P.2 Thematic Curriculum
 const TOPICS = ["Numbers", "Operations", "Geometry", "Measurement", "Sets"];
 
