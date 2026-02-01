@@ -1,102 +1,93 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 
-// --- 1. DYNAMIC SVG ENGINE (Illustrations) ---
+// --- 1. DYNAMIC SVG LIBRARY (No images, keeps repo <500MB) ---
 const MathSVG = {
-  // Generates different counts and shapes based on unique seeds
-  SetGroup: ({ seed }) => {
-    const count = (seed % 5) + 3; // 3 to 7 items
-    const shapeType = seed % 3;
-    return (
-      <div className="flex justify-center border-2 border-dashed border-gray-400 p-2 my-2 rounded bg-slate-50">
-        <svg width="180" height="50" viewBox="0 0 180 50">
-          {Array.from({ length: count }).map((_, i) => (
-            shapeType === 0 ? 
-            <circle key={i} cx={25 + i * 30} cy="25" r="10" stroke="black" fill="none" strokeWidth="1.5" /> :
-            <rect key={i} x={15 + i * 30} y={15} width="20" height="20" stroke="black" fill="none" strokeWidth="1.5" />
-          ))}
-        </svg>
-      </div>
-    );
-  },
-  // Generates an abacus with varying beads
-  Abacus: ({ seed }) => {
-    const ones = (seed % 9) + 1;
-    return (
-      <svg width="100" height="80" className="mx-auto my-1">
-        <line x1="30" y1="10" x2="30" y2="70" stroke="black" strokeWidth="2"/>
-        <line x1="60" y1="10" x2="60" y2="70" stroke="black" strokeWidth="2"/>
-        <line x1="90" y1="10" x2="90" y2="70" stroke="black" strokeWidth="2"/>
-        <rect x="10" y="70" width="80" height="8" fill="#333"/>
-        {Array.from({ length: ones }).map((_, i) => (
-          <ellipse key={i} cx="90" cy={65 - i * 6} rx="7" ry="3" fill="white" stroke="black" />
+  SetObjects: ({ count, seed }) => (
+    <div className="flex justify-center border-2 border-dashed border-gray-400 p-2 my-2 rounded-lg bg-gray-50">
+      <svg width="200" height="40" viewBox="0 0 200 40">
+        {Array.from({ length: count }).map((_, i) => (
+          <circle key={i} cx={20 + i * 30} cy="20" r={8} stroke="black" fill={seed % 2 === 0 ? "none" : "#eee"} strokeWidth="1.5" />
         ))}
       </svg>
-    );
-  }
+    </div>
+  ),
+  Abacus: ({ value }) => (
+    <svg width="80" height="60" className="mx-auto my-1">
+      <line x1="20" y1="5" x2="20" y2="50" stroke="black" strokeWidth="2"/>
+      <line x1="40" y1="5" x2="40" y2="50" stroke="black" strokeWidth="2"/>
+      <line x1="60" y1="5" x2="60" y2="50" stroke="black" strokeWidth="2"/>
+      <rect x="5" y="50" width="70" height="6" fill="#000"/>
+      {Array.from({ length: value }).map((_, i) => (
+        <ellipse key={i} cx="60" cy={45 - i * 5} rx="6" ry="2.5" fill="white" stroke="black" />
+      ))}
+    </svg>
+  )
 };
 
 const UgandaDigitalAcademy = () => {
   const [selectedSet, setSelectedSet] = useState(null);
-  const [shuffleSeed, setShuffleSeed] = useState(1);
 
-  // --- 2. THE GENERATOR (Uses Prime Multipliers for Uniqueness) ---
-  const questions = useMemo(() => {
-    if (selectedSet === null) return [];
+  // --- 2. THE UNIQUE CONTENT ENGINE ---
+  const generateUniqueSet = (setId) => {
+    let paperQuestions = [];
     
-    let qns = [];
-    // Prime numbers (157, 397) ensure the sequence doesn't repeat for a long time
-    const baseSeed = selectedSet * 157 * shuffleSeed;
+    // This creates a unique "starting point" for every set
+    // Set 1 starts at 50, Set 2 starts at 100, Set 3 at 150...
+    const setBase = setId * 50; 
 
     for (let i = 1; i <= 50; i++) {
-      const qSeed = baseSeed + (i * 397);
-      let q = { id: i, text: "", img: null };
+      const qId = setBase + i; // This number is unique across all 5,000 questions
+      let q = { num: i, text: "", art: null };
 
-      if (i <= 10) { // Topic: Sets
-        q.text = "Count the members in the set:";
-        q.img = <MathSVG.SetGroup seed={qSeed} />;
+      // Distribute topics across the 50 questions
+      if (i <= 10) { // TOPIC: SETS
+        const count = (qId % 6) + 2;
+        q.text = `How many circles are in this set?`;
+        q.art = <MathSVG.SetObjects count={count} seed={qId} />;
       } 
-      else if (i <= 25) { // Topic: Numbers & Place Value
-        if (i % 5 === 0) {
-          q.text = "What number is on the Abacus?";
-          q.img = <MathSVG.Abacus seed={qSeed} />;
-        } else if (i % 2 === 0) {
-          const val = 100 + (qSeed % 400);
-          q.text = `Write ${val} in words:`;
+      else if (i <= 20) { // TOPIC: NUMBERS
+        if (i % 4 === 0) {
+          const val = (qId % 9) + 1;
+          q.text = `What digit is on the ones rod?`;
+          q.art = <MathSVG.Abacus value={val} />;
         } else {
-          const val = 10 + (qSeed % 80);
-          q.text = `What is the place value of ${val.toString()[0]} in ${val}?`;
+          const num = 100 + (qId % 700) + (i * 2);
+          q.text = `Write ${num} in number names:`;
         }
       }
-      else if (i <= 40) { // Topic: Operations
-        const n1 = 30 + (qSeed % 60);
-        const n2 = 10 + (qSeed % 20);
-        q.text = qSeed % 2 === 0 ? `Work out: ${n1} + ${n2} =` : `Take away: ${n1} - ${n2} =`;
+      else if (i <= 40) { // TOPIC: OPERATIONS
+        const n1 = 20 + (qId % 50) + i;
+        const n2 = 5 + (qId % 15);
+        if (i % 2 === 0) {
+          q.text = `Work out: ${n1} + ${n2} =`;
+        } else {
+          q.text = `Find the difference: ${n1 + 10} - ${n2} =`;
+        }
       }
-      else { // Topic: Geometry/Drawing
-        const items = ["triangle", "rectangle", "square", "kite", "ball", "tree"];
-        const item = items[qSeed % items.length];
-        q.text = `Draw and color a ${item}:`;
-        q.img = <div className="h-20 w-32 border-2 border-black border-dashed mx-auto my-2"></div>;
+      else { // TOPIC: GEOMETRY & MEASUREMENT
+        const items = ["Rectangle", "Triangle", "Square", "Kite", "Pot", "Tree", "Cup"];
+        const pick = items[qId % items.length];
+        q.text = `Draw a ${pick} in the box below:`;
+        q.art = <div className="h-16 w-24 border border-black border-dotted mx-auto my-2"></div>;
       }
-      qns.push(q);
+      paperQuestions.push(q);
     }
-    return qns;
-  }, [selectedSet, shuffleSeed]);
+    return paperQuestions;
+  };
 
-  // --- 3. DASHBOARD VIEW ---
   if (selectedSet === null) {
     return (
-      <div className="p-8 bg-gray-50 min-h-screen">
-        <div className="text-center mb-10">
-          <h1 className="text-4xl font-black text-blue-900 mb-2">UGANDA DIGITAL ACADEMY</h1>
-          <p className="font-bold text-blue-600">P.2 MATHEMATICS - 100 UNIQUE ASSESSMENT SETS</p>
-        </div>
+      <div className="p-10 bg-gray-100 min-h-screen">
+        <header className="text-center mb-10">
+          <h1 className="text-4xl font-black text-blue-900">UGANDA DIGITAL ACADEMY</h1>
+          <p className="text-lg font-bold text-gray-600">P.2 MATHEMATICS - 100 UNIQUE SETS</p>
+        </header>
         <div className="grid grid-cols-2 sm:grid-cols-5 lg:grid-cols-10 gap-3 max-w-6xl mx-auto">
           {Array.from({ length: 100 }, (_, i) => (
             <button
               key={i + 1}
               onClick={() => setSelectedSet(i + 1)}
-              className="h-16 bg-white border-2 border-blue-200 rounded-lg hover:bg-blue-600 hover:text-white transition-all font-bold shadow-sm"
+              className="p-4 bg-white border-2 border-blue-800 rounded-lg hover:bg-blue-800 hover:text-white font-bold transition-all shadow"
             >
               SET {i + 1}
             </button>
@@ -106,42 +97,38 @@ const UgandaDigitalAcademy = () => {
     );
   }
 
-  // --- 4. PAPER VIEW ---
+  const questions = generateUniqueSet(selectedSet);
+
   return (
-    <div className="min-h-screen bg-zinc-200 p-4">
-      <div className="no-print mb-6 flex justify-between items-center max-w-[210mm] mx-auto bg-white p-4 rounded-xl shadow">
-        <button onClick={() => setSelectedSet(null)} className="font-bold text-gray-600">← Back</button>
-        <button 
-          onClick={() => setShuffleSeed(Math.floor(Math.random() * 1000))} 
-          className="bg-orange-500 text-white px-4 py-2 rounded-lg text-xs font-bold"
-        >
-          🔀 SHUFFLE QUESTIONS
-        </button>
-        <button onClick={() => window.print()} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg">PRINT PDF</button>
+    <div className="min-h-screen bg-zinc-300 p-4">
+      <div className="no-print mb-4 flex justify-between max-w-[210mm] mx-auto bg-white p-4 rounded-lg shadow">
+        <button onClick={() => setSelectedSet(null)} className="font-bold">← Back to Sets</button>
+        <span className="font-black text-blue-800 tracking-widest">UDA P.2 PORTAL</span>
+        <button onClick={() => window.print()} className="bg-blue-600 text-white px-4 py-1 rounded font-bold">Print Set {selectedSet}</button>
       </div>
 
-      <div className="paper bg-white shadow-2xl border-2 border-black p-10 mx-auto w-[210mm] min-h-[297mm]">
-        <div className="text-center border-b-4 border-double border-black pb-4 mb-6">
+      <div className="paper bg-white p-10 mx-auto w-[210mm] min-h-[297mm] shadow-2xl border-2 border-black">
+        <div className="text-center border-b-4 border-double border-black pb-4 mb-8">
           <h1 className="text-3xl font-black">UGANDA DIGITAL ACADEMY</h1>
-          <h2 className="text-lg font-bold">P.2 MATHEMATICS ASSESSMENT - SET {selectedSet}</h2>
-          <div className="flex justify-between mt-4 text-xs font-bold uppercase">
-            <span>Name: ________________________________</span>
-            <span>Class: P.2</span>
+          <h2 className="text-xl font-bold italic">MATHEMATICS ASSESSMENT - SET {selectedSet}</h2>
+          <div className="flex justify-between mt-6 text-xs font-bold underline">
+            <span>NAME: ____________________________________</span>
+            <span>CLASS: P.2</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-8 gap-y-4">
+        <div className="grid grid-cols-2 gap-x-12 gap-y-6">
           {questions.map((q) => (
-            <div key={q.id} className="text-[12px] border-b border-gray-100 pb-1">
-              <p><span className="font-bold">{q.id}.</span> {q.text}</p>
-              {q.img}
-              <div className="mt-1 border-b border-black w-20 h-4 ml-4"></div>
+            <div key={q.num} className="text-[11px] leading-tight">
+              <p><span className="font-bold">{q.num}.</span> {q.text}</p>
+              {q.art}
+              <div className="mt-2 border-b border-black w-20 h-4 ml-4"></div>
             </div>
           ))}
         </div>
-
-        <div className="mt-8 text-center text-[10px] font-bold border-t pt-2 italic opacity-40">
-          * END OF WORK - UGANDA DIGITAL ACADEMY *
+        
+        <div className="mt-8 text-center text-[10px] font-bold border-t pt-2 italic">
+          Generated via Uganda Digital Academy AI Engine (Standard Curriculum)
         </div>
       </div>
 
