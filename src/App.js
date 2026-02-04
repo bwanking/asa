@@ -1,105 +1,106 @@
-import React from 'react'; // Removed unused useState to fix Vercel error
+import React from 'react';
 import { db } from './firebase'; 
 import { doc, setDoc } from 'firebase/firestore';
 
-const GlobalStyles = () => (
-  <style>{`
-    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #f8fafd; font-family: 'Inter', sans-serif; }
-    .app-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
-    .admin-btn {
-      position: fixed; bottom: 20px; right: 20px; background: #ff4444; color: white;
-      border: none; padding: 20px; borderRadius: 12px; font-weight: 900;
-      cursor: pointer; z-index: 10000; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    }
-    .status-box { background: white; padding: 40px; border-radius: 30px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
-  `}</style>
-);
-
 function App() {
-  // --- UDA FACTORY LOGIC ---
-  const uploadP3Math = async () => {
-    const targetClass = "P3";
-    const targetSubject = "MATHEMATICS";
+  
+  const runUpload = async (subject) => {
+    const targetClass = "p3";
+    console.log(`🚀 Starting Factory for ${subject}...`);
     
-    console.log("🚀 Factory Started...");
-    
-    // Loop to create 100 Sets (1990 - 2089)
     for (let i = 0; i < 100; i++) {
       const yearMapping = 1990 + i; 
-      const docId = `${targetClass.toLowerCase()}_${targetSubject.toLowerCase()}_${yearMapping}`;
+      const docId = `${targetClass}_${subject.toLowerCase()}_${yearMapping}`;
       
       const generatedQuestions = Array.from({ length: 50 }, (_, index) => {
         const qNum = index + 1;
         const qId = (yearMapping * 100) + qNum;
-        
-        let questionObj = {
-          q: "",
-          ans: "",
-          options: [],
-          artType: null,
-          artValue: null
-        };
+        let questionObj = { q: "", ans: "", options: [] };
 
-        // Logic for P3 Math Questions
-        if (qNum % 10 === 1) {
-          const count = (qId % 5) + 4;
-          questionObj.q = `How many members are in this set?`;
-          questionObj.ans = `${count}`;
-          questionObj.options = [`${count}`, `${count + 2}`, "3", "10"];
-          questionObj.artType = "sets";
-          questionObj.artValue = count;
-        } else if (qNum % 10 === 5) {
-          const factor = (qId % 5) + 2;
-          questionObj.q = `Multiply: ${factor} x 3 = ____`;
-          questionObj.ans = `${factor * 3}`;
-          questionObj.options = [`${factor * 3}`, `${factor * 3 + 1}`, "15", "9"];
-        } else {
-          const n1 = 100 + (qId % 50);
-          const n2 = 50 + (qId % 20);
+        // --- SUBJECT LOGIC SWITCH ---
+        if (subject === "mathematics") {
+          const n1 = (qId % 50) + 10;
+          const n2 = (qId % 10);
           questionObj.q = `Work out: ${n1} + ${n2} = ____`;
           questionObj.ans = `${n1 + n2}`;
-          questionObj.options = [`${n1 + n2}`, `${n1 + n2 - 5}`, "200", "150"];
+          questionObj.options = [`${n1 + n2}`, `${n1 + n2 + 5}`, "100", "5"];
+        } 
+        else if (subject === "science") {
+          questionObj.q = "Which part of the body is used for seeing?";
+          questionObj.ans = "Eyes";
+          questionObj.options = ["Eyes", "Ears", "Nose", "Legs"];
+        } 
+        else if (subject === "sst") {
+          questionObj.q = "Which of these is a basic need of a family?";
+          questionObj.ans = "Food";
+          questionObj.options = ["Food", "Television", "Toy", "Radio"];
         }
+
         return questionObj;
       });
 
       try {
-        // Matches your DB schema: metadata + questions array
         await setDoc(doc(db, "UDA_EXAMS", docId), {
           metadata: {
-            class: targetClass,
-            subject: targetSubject,
+            class: "P3",
+            subject: subject.toUpperCase(),
             totalQuestions: 50,
             updatedAt: new Date().toISOString(),
             year: yearMapping.toString()
           },
           questions: generatedQuestions
         });
-        console.log(`✅ Uploaded ${docId}`);
+        console.log(`✅ ${docId} Done`);
       } catch (err) {
-        console.error(`❌ Error at ${docId}:`, err);
-        break; 
+        console.error("❌ Error:", err);
+        alert("Check your Firebase Rules! Error: " + err.message);
+        return;
       }
     }
-    alert("FINISHED: 100 Sets of P3 Math are now in Firebase!");
+    alert(`${subject.toUpperCase()} finished! Check your Firestore collection.`);
   };
 
   return (
-    <div className="app-container">
-      <GlobalStyles />
+    <div style={{ padding: '50px', textAlign: 'center', fontFamily: 'sans-serif', backgroundColor: '#f4f7f6', minHeight: '100vh' }}>
+      <h1 style={{ color: '#2c3e50' }}>UDA ADMIN PANEL (ASA-DBA)</h1>
+      <p style={{ color: '#7f8c8d' }}>Choose a subject to generate 100 years of data.</p>
       
-      <div className="status-box">
-        <h1 style={{ color: '#0a111e', fontSize: '24px', fontWeight: '900' }}>UDA ADMIN PANEL</h1>
-        <p style={{ color: '#666' }}>The uploader is ready. Open your console (F12) before starting.</p>
-        <p style={{ fontSize: '12px', marginTop: '20px', color: '#aaa' }}>Build Status: <span style={{color: 'green'}}>Success</span></p>
-      </div>
+      <div style={{ display: 'flex', gap: '20px', justifyContent: 'center', marginTop: '30px' }}>
+        <button 
+          onClick={() => runUpload("mathematics")}
+          style={btnStyle("#e74c3c")}
+        >
+          Upload P3 Math
+        </button>
 
-      {/* CLICK THIS TO RUN THE FACTORY */}
-      <button className="admin-btn" onClick={uploadP3Math}>
-        🚀 START P3 MATH UPLOAD
-      </button>
+        <button 
+          onClick={() => runUpload("science")}
+          style={btnStyle("#27ae60")}
+        >
+          Upload P3 Science
+        </button>
+
+        <button 
+          onClick={() => runUpload("sst")}
+          style={btnStyle("#2980b9")}
+        >
+          Upload P3 SST
+        </button>
+      </div>
     </div>
   );
 }
+
+// Simple styling helper
+const btnStyle = (color) => ({
+  padding: '20px 30px',
+  backgroundColor: color,
+  color: 'white',
+  border: 'none',
+  borderRadius: '12px',
+  cursor: 'pointer',
+  fontWeight: 'bold',
+  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+});
 
 export default App;
