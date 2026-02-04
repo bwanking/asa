@@ -4,6 +4,7 @@ import { doc, setDoc } from 'firebase/firestore';
 
 function App() {
   
+  
   // Helper to shuffle options so the correct answer isn't always in the same spot
   const shuffle = (array) => array.sort(() => Math.random() - 0.5);
 
