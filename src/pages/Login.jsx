@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+
 // --- 1. DYNAMIC ILLUSTRATION ENGINE (SVG) ---
 const MathSVG = {
   SetObjects: ({ count, seed }) => (
