@@ -1,125 +1,114 @@
-import React from 'react';
-import { db } from './firebase'; 
-import { doc, setDoc } from 'firebase/firestore';
+import React, { useState } from 'react';
 
-function App() {
-  
-  // Helper to shuffle options so the correct answer isn't always in the same spot
-  const shuffle = (array) => array.sort(() => Math.random() - 0.5);
 
-  const runUpload = async (subject) => {
-    const targetClass = "p3";
-    console.log(`🚀 Starting NLSC Factory for ${subject}...`);
-    
-    for (let i = 0; i < 100; i++) {
-      const yearMapping = 1990 + i; 
-      const docId = `${targetClass}_${subject.toLowerCase()}_${yearMapping}`;
+// Topics aligned with the Ugandan P.2 Thematic Curriculum
+const TOPICS = ["Numbers", "Operations", "Geometry", "Measurement", "Sets"];
+
+const App = () => {
+  const [selectedSet, setSelectedSet] = useState(null);
+
+  // Helper to generate specific questions for a set
+  const generateQuestions = (setId) => {
+    let questions = [];
+    for (let i = 1; i <= 50; i++) {
+      const topic = TOPICS[i % TOPICS.length];
+      const seed = setId * i; // Deterministic generation
       
-      const generatedQuestions = Array.from({ length: 50 }, (_, index) => {
-        const qNum = index + 1;
-        // The 'seed' ensures every year AND every question is unique
-        const seed = yearMapping + qNum;
-        let qObj = { q: "", ans: "", options: [], artType: null, artValue: null };
+      let qText = "";
+      if (topic === "Numbers") qText = `Write ${100 + (seed % 900)} in words.`;
+      if (topic === "Operations") qText = `Work out: ${20 + (seed % 30)} + ${10 + (seed % 10)} =`;
+      if (topic === "Geometry") qText = `Name the shape with 3 sides and 3 corners:`;
+      if (topic === "Measurement") qText = `How many days make a week?`;
+      if (topic === "Sets") qText = `Draw a set of ${2 + (seed % 5)} balls:`;
 
-        if (subject === "mathematics") {
-          // --- TOPIC 1: SET THEORY (Questions 1-10) ---
-          if (qNum <= 10) {
-            const count = (seed % 5) + 2; // 2 to 6 elements
-            const setName = ["A", "B", "P", "Q", "K"][seed % 5];
-            qObj.q = `How many elements are in Set ${setName} shown below?`;
-            qObj.ans = `${count}`;
-            qObj.options = shuffle([`${count}`, `${count + 1}`, `${count - 2}`, "0"]);
-            qObj.artType = "sets";
-            qObj.artValue = { count, name: setName };
-          } 
-          // --- TOPIC 2: GEOMETRY & SHAPES (Questions 11-20) ---
-          else if (qNum <= 20) {
-            const side = (seed % 5) + 3; // 3 to 7 cm
-            qObj.q = `Calculate the perimeter of the square shown below with a side of ${side}cm.`;
-            qObj.ans = `${side * 4}cm`;
-            qObj.options = shuffle([`${side * 4}cm`, `${side * side}cm`, "10cm", "20cm"]);
-            qObj.artType = "square";
-            qObj.artValue = side;
-          }
-          // --- TOPIC 3: MONEY & REAL LIFE (Questions 21-30) ---
-          else if (qNum <= 30) {
-            const pencilPrice = (seed % 3 + 1) * 200;
-            const quantity = (seed % 3) + 2;
-            qObj.q = `If one pencil costs ${pencilPrice} shillings, find the cost of ${quantity} pencils.`;
-            qObj.ans = `${pencilPrice * quantity}`;
-            qObj.options = shuffle([`${pencilPrice * quantity}`, `${pencilPrice}`, "1000", "500"]);
-            qObj.artType = "money";
-          }
-          // --- TOPIC 4: MEASUREMENT - TIME/WEIGHT (Questions 31-40) ---
-          else if (qNum <= 40) {
-            const weeks = (seed % 3) + 2;
-            qObj.q = `How many days are in ${weeks} weeks?`;
-            qObj.ans = `${weeks * 7}`;
-            qObj.options = shuffle([`${weeks * 7}`, `${weeks * 5}`, "14", "30"]);
-          }
-          // --- TOPIC 5: ALGEBRA & NUMERATION (Questions 41-50) ---
-          else {
-            const unknown = (seed % 10) + 1;
-            const base = (seed % 20) + 5;
-            qObj.q = `What number must be added to ${base} to get ${base + unknown}?`;
-            qObj.ans = `${unknown}`;
-            qObj.options = shuffle([`${unknown}`, `${base}`, `${base + unknown}`, "1"]);
-          }
-        }
-
-        return qObj;
-      });
-
-      try {
-        await setDoc(doc(db, "UDA_EXAMS", docId), {
-          metadata: {
-            class: "P3",
-            subject: subject.toUpperCase(),
-            totalQuestions: 50,
-            updatedAt: new Date().toISOString(),
-            year: yearMapping.toString(),
-            curriculum: "NLSC"
-          },
-          questions: generatedQuestions
-        });
-        console.log(`✅ Uploaded Set ${yearMapping}: ${docId}`);
-      } catch (err) {
-        console.error("❌ Error uploading:", err);
-        return;
-      }
+      questions.push({ id: i, text: qText, topic });
     }
-    alert(`${subject.toUpperCase()} - 100 Unique NLSC Sets Uploaded Successfully!`);
+    return questions;
   };
 
-  return (
-    <div style={{ padding: '40px', textAlign: 'center', backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: 'Arial' }}>
-      <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '20px', display: 'inline-block', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
-        <h1 style={{ color: '#1a73e8' }}>UDA NLSC FACTORY</h1>
-        <p style={{ color: '#5f6368' }}>Generating 100 unique years (1990 - 2089)</p>
+  // 1. Dashboard View (Selection Page)
+  if (selectedSet === null) {
+    return (
+      <div className="p-8 bg-gray-50 min-h-screen font-sans">
+        <header className="text-center mb-10">
+          <h1 className="text-4xl font-black text-blue-900">UGANDA DIGITAL ACADEMY</h1>
+          <p className="text-gray-600 mt-2">P.2 Mathematics Assessment Bank (100 Sets)</p>
+        </header>
         
-        <div style={{ marginTop: '20px', display: 'flex', gap: '15px' }}>
-          <button onClick={() => runUpload("mathematics")} style={btnStyle("#ea4335")}>
-            🚀 PUSH UNIQUE P3 MATH
-          </button>
+        <div className="grid grid-cols-2 md:grid-cols-5 lg:grid-cols-10 gap-4 max-w-6xl mx-auto">
+          {Array.from({ length: 100 }, (_, i) => (
+            <button
+              key={i + 1}
+              onClick={() => setSelectedSet(i + 1)}
+              className="p-4 bg-white border-2 border-blue-100 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition shadow-sm font-bold text-blue-800"
+            >
+              SET {String(i + 1).padStart(3, '0')}
+            </button>
+          ))}
         </div>
-        
-        <p style={{ fontSize: '12px', color: '#999', marginTop: '20px' }}>
-          Note: This will overwrite existing data for the same years.
-        </p>
       </div>
+    );
+  }
+
+  // 2. Individual Paper View
+  const questions = generateQuestions(selectedSet);
+
+  return (
+    <div className="min-h-screen bg-white p-4">
+      {/* Navigation - Hidden during Print */}
+      <div className="no-print mb-6 flex justify-between items-center max-w-[210mm] mx-auto">
+        <button 
+          onClick={() => setSelectedSet(null)}
+          className="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300 font-bold"
+        >
+          ← Back to All Sets
+        </button>
+        <button 
+          onClick={() => window.print()}
+          className="bg-blue-600 text-white px-6 py-2 rounded font-bold shadow-lg"
+        >
+          Print Set {selectedSet}
+        </button>
+      </div>
+
+      {/* The Actual Paper */}
+      <div className="paper shadow-2xl border-2 border-black p-10 mx-auto w-[210mm] min-h-[297mm]">
+        <div className="text-center border-b-4 border-double border-black pb-4 mb-8">
+          <h1 className="text-3xl font-black uppercase">UGANDA DIGITAL ACADEMY</h1>
+          <h2 className="text-xl font-bold italic">P.2 MATHEMATICS - SET {String(selectedSet).padStart(3, '0')}</h2>
+          <div className="flex justify-between mt-4 text-sm font-bold">
+            <span>NAME: ________________________________</span>
+            <span>CLASS: P.2</span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-y-8">
+          {questions.map((q) => (
+            <div key={q.id} className="flex items-start">
+              <span className="font-bold mr-2">{q.id}.</span>
+              <div className="flex-1">
+                <p className="text-lg">{q.text}</p>
+                <div className="mt-4 border-b border-black w-1/2 h-4"></div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-12 text-center font-bold border-t pt-4">
+          * END OF SET {selectedSet} *
+        </div>
+      </div>
+
+      <style jsx global>{`
+        @media print {
+          .no-print { display: none !important; }
+          .paper { border: none !important; box-shadow: none !important; margin: 0 !important; }
+          body { background: white; }
+        }
+        .paper { font-family: 'Times New Roman', serif; }
+      `}</style>
     </div>
   );
-}
-
-const btnStyle = (bg) => ({
-  padding: '15px 30px',
-  backgroundColor: bg,
-  color: 'white',
-  border: 'none',
-  borderRadius: '10px',
-  cursor: 'pointer',
-  fontWeight: 'bold',
-  fontSize: '16px'
-});
+};
 
 export default App;
