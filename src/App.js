@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 
+
 // --- 1. DYNAMIC SVG LIBRARY (P2 Visual Aids) ---
 const MathSVG = {
   SetObjects: ({ count, type }) => (
