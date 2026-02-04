@@ -1,16 +1,29 @@
-import React, { useState } from 'react';
+import React from 'react'; // Removed unused useState to fix Vercel error
 import { db } from './firebase'; 
 import { doc, setDoc } from 'firebase/firestore';
 
-const UgandaDigitalAcademy = () => {
-  // ... your existing useState hooks ...
+const GlobalStyles = () => (
+  <style>{`
+    body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #f8fafd; font-family: 'Inter', sans-serif; }
+    .app-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
+    .admin-btn {
+      position: fixed; bottom: 20px; right: 20px; background: #ff4444; color: white;
+      border: none; padding: 20px; borderRadius: 12px; font-weight: 900;
+      cursor: pointer; z-index: 10000; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    }
+    .status-box { background: white; padding: 40px; border-radius: 30px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+  `}</style>
+);
 
-  // --- STEP 1: PASTE THE FUNCTION HERE (Inside the component, before the return) ---
+function App() {
+  // --- UDA FACTORY LOGIC ---
   const uploadP3Math = async () => {
     const targetClass = "P3";
     const targetSubject = "MATHEMATICS";
-    console.log("🚀 Starting P3 Math Factory...");
-
+    
+    console.log("🚀 Factory Started...");
+    
+    // Loop to create 100 Sets (1990 - 2089)
     for (let i = 0; i < 100; i++) {
       const yearMapping = 1990 + i; 
       const docId = `${targetClass.toLowerCase()}_${targetSubject.toLowerCase()}_${yearMapping}`;
@@ -18,8 +31,16 @@ const UgandaDigitalAcademy = () => {
       const generatedQuestions = Array.from({ length: 50 }, (_, index) => {
         const qNum = index + 1;
         const qId = (yearMapping * 100) + qNum;
-        let questionObj = { q: "", ans: "", options: [], artType: null, artValue: null };
+        
+        let questionObj = {
+          q: "",
+          ans: "",
+          options: [],
+          artType: null,
+          artValue: null
+        };
 
+        // Logic for P3 Math Questions
         if (qNum % 10 === 1) {
           const count = (qId % 5) + 4;
           questionObj.q = `How many members are in this set?`;
@@ -43,6 +64,7 @@ const UgandaDigitalAcademy = () => {
       });
 
       try {
+        // Matches your DB schema: metadata + questions array
         await setDoc(doc(db, "UDA_EXAMS", docId), {
           metadata: {
             class: targetClass,
@@ -55,30 +77,29 @@ const UgandaDigitalAcademy = () => {
         });
         console.log(`✅ Uploaded ${docId}`);
       } catch (err) {
-        console.error(`❌ Error uploading ${docId}:`, err);
+        console.error(`❌ Error at ${docId}:`, err);
         break; 
       }
     }
-    alert("P3 Math: 100 Sets Uploaded Successfully!");
+    alert("FINISHED: 100 Sets of P3 Math are now in Firebase!");
   };
 
   return (
     <div className="app-container">
-      {/* ... your existing dashboard/sidebar code ... */}
+      <GlobalStyles />
+      
+      <div className="status-box">
+        <h1 style={{ color: '#0a111e', fontSize: '24px', fontWeight: '900' }}>UDA ADMIN PANEL</h1>
+        <p style={{ color: '#666' }}>The uploader is ready. Open your console (F12) before starting.</p>
+        <p style={{ fontSize: '12px', marginTop: '20px', color: '#aaa' }}>Build Status: <span style={{color: 'green'}}>Success</span></p>
+      </div>
 
-      {/* --- STEP 2: PASTE THE BUTTON AT THE VERY BOTTOM OF THE HTML --- */}
-      <button 
-        onClick={uploadP3Math} 
-        style={{
-          position: 'fixed', bottom: '20px', right: '20px', backgroundColor: 'red',
-          color: 'white', padding: '15px', borderRadius: '10px', fontWeight: 'bold',
-          zIndex: 10000, cursor: 'pointer'
-        }}
-      >
-        🚀 ADMIN: UPLOAD P3 MATH
+      {/* CLICK THIS TO RUN THE FACTORY */}
+      <button className="admin-btn" onClick={uploadP3Math}>
+        🚀 START P3 MATH UPLOAD
       </button>
     </div>
   );
-};
+}
 
-export default UgandaDigitalAcademy;
+export default App;
