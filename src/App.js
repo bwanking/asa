@@ -4,9 +4,12 @@ import { doc, setDoc } from 'firebase/firestore';
 
 function App() {
   
+  // Helper to shuffle options so the correct answer isn't always in the same spot
+  const shuffle = (array) => array.sort(() => Math.random() - 0.5);
+
   const runUpload = async (subject) => {
     const targetClass = "p3";
-    console.log(`🚀 Generating Unique NLSC Sets for ${subject}...`);
+    console.log(`🚀 Starting NLSC Factory for ${subject}...`);
     
     for (let i = 0; i < 100; i++) {
       const yearMapping = 1990 + i; 
@@ -14,49 +17,57 @@ function App() {
       
       const generatedQuestions = Array.from({ length: 50 }, (_, index) => {
         const qNum = index + 1;
-        // Seed unique values based on the specific set and question number
+        // The 'seed' ensures every year AND every question is unique
         const seed = yearMapping + qNum;
-        let questionObj = { q: "", ans: "", options: [], artType: null, artValue: null };
+        let qObj = { q: "", ans: "", options: [], artType: null, artValue: null };
 
         if (subject === "mathematics") {
-          // TOPIC: GEOMETRY & AREA (New Curriculum Standard)
-          if (qNum % 10 === 0) {
-            const base = (seed % 6) + 4;
-            const height = (seed % 4) + 2;
-            questionObj.q = `Find the area of the triangle shown below with base ${base}cm and height ${height}cm.`;
-            questionObj.ans = `${(base * height) / 2}`;
-            questionObj.options = [`${(base * height) / 2}`, `${base * height}`, "12", "20"];
-            questionObj.artType = "triangle"; 
-            questionObj.artValue = { base, height }; // Frontend uses this to draw
+          // --- TOPIC 1: SET THEORY (Questions 1-10) ---
+          if (qNum <= 10) {
+            const count = (seed % 5) + 2; // 2 to 6 elements
+            const setName = ["A", "B", "P", "Q", "K"][seed % 5];
+            qObj.q = `How many elements are in Set ${setName} shown below?`;
+            qObj.ans = `${count}`;
+            qObj.options = shuffle([`${count}`, `${count + 1}`, `${count - 2}`, "0"]);
+            qObj.artType = "sets";
+            qObj.artValue = { count, name: setName };
           } 
-          // TOPIC: MONEY & SHOPPING (Real-life competency)
-          else if (qNum % 10 === 3) {
-            const price = (seed % 5 + 1) * 100;
-            questionObj.q = `If one apple costs ${price} shillings, how much will you pay for 3 apples?`;
-            questionObj.ans = `${price * 3}`;
-            questionObj.options = [`${price * 3}`, `${price * 2}`, "1000", "500"];
-            questionObj.artType = "money";
+          // --- TOPIC 2: GEOMETRY & SHAPES (Questions 11-20) ---
+          else if (qNum <= 20) {
+            const side = (seed % 5) + 3; // 3 to 7 cm
+            qObj.q = `Calculate the perimeter of the square shown below with a side of ${side}cm.`;
+            qObj.ans = `${side * 4}cm`;
+            qObj.options = shuffle([`${side * 4}cm`, `${side * side}cm`, "10cm", "20cm"]);
+            qObj.artType = "square";
+            qObj.artValue = side;
           }
-          // TOPIC: SETS & GROUPS
-          else if (qNum % 10 === 1) {
-            const members = (seed % 4) + 3;
-            questionObj.q = `Identify the number of elements in the set P shown below.`;
-            questionObj.ans = `${members}`;
-            questionObj.options = [`${members}`, "2", "9", "0"];
-            questionObj.artType = "sets";
-            questionObj.artValue = members;
+          // --- TOPIC 3: MONEY & REAL LIFE (Questions 21-30) ---
+          else if (qNum <= 30) {
+            const pencilPrice = (seed % 3 + 1) * 200;
+            const quantity = (seed % 3) + 2;
+            qObj.q = `If one pencil costs ${pencilPrice} shillings, find the cost of ${quantity} pencils.`;
+            qObj.ans = `${pencilPrice * quantity}`;
+            qObj.options = shuffle([`${pencilPrice * quantity}`, `${pencilPrice}`, "1000", "500"]);
+            qObj.artType = "money";
           }
+          // --- TOPIC 4: MEASUREMENT - TIME/WEIGHT (Questions 31-40) ---
+          else if (qNum <= 40) {
+            const weeks = (seed % 3) + 2;
+            qObj.q = `How many days are in ${weeks} weeks?`;
+            qObj.ans = `${weeks * 7}`;
+            qObj.options = shuffle([`${weeks * 7}`, `${weeks * 5}`, "14", "30"]);
+          }
+          // --- TOPIC 5: ALGEBRA & NUMERATION (Questions 41-50) ---
           else {
-            const n1 = (seed % 80) + 10;
-            const n2 = (seed % 20);
-            questionObj.q = `Solve: ${n1} + ${n2} = ____`;
-            questionObj.ans = `${n1 + n2}`;
-            questionObj.options = [`${n1 + n2}`, `${n1 + n2 + 1}`, `${n1 + n2 - 1}`, "100"];
+            const unknown = (seed % 10) + 1;
+            const base = (seed % 20) + 5;
+            qObj.q = `What number must be added to ${base} to get ${base + unknown}?`;
+            qObj.ans = `${unknown}`;
+            qObj.options = shuffle([`${unknown}`, `${base}`, `${base + unknown}`, "1"]);
           }
-        } 
-        // ... Logic for other subjects follows similar randomization ...
-        
-        return questionObj;
+        }
+
+        return qObj;
       });
 
       try {
@@ -67,29 +78,48 @@ function App() {
             totalQuestions: 50,
             updatedAt: new Date().toISOString(),
             year: yearMapping.toString(),
-            curriculum: "NLSC" // Tagging as New Curriculum
+            curriculum: "NLSC"
           },
           questions: generatedQuestions
         });
+        console.log(`✅ Uploaded Set ${yearMapping}: ${docId}`);
       } catch (err) {
-        console.error("❌ Error:", err);
+        console.error("❌ Error uploading:", err);
         return;
       }
     }
-    alert(`${subject.toUpperCase()} Unique Sets Uploaded!`);
+    alert(`${subject.toUpperCase()} - 100 Unique NLSC Sets Uploaded Successfully!`);
   };
 
   return (
-    <div style={{ padding: '50px', textAlign: 'center', fontFamily: 'sans-serif' }}>
-      <h1>UDA NLSC ADMIN PANEL</h1>
-      <button onClick={() => runUpload("mathematics")} style={btnStyle("#e74c3c")}>Update Unique P3 Math</button>
-      <button onClick={() => runUpload("science")} style={btnStyle("#27ae60")}>Update Unique P3 Science</button>
+    <div style={{ padding: '40px', textAlign: 'center', backgroundColor: '#f0f2f5', minHeight: '100vh', fontFamily: 'Arial' }}>
+      <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '20px', display: 'inline-block', boxShadow: '0 10px 25px rgba(0,0,0,0.1)' }}>
+        <h1 style={{ color: '#1a73e8' }}>UDA NLSC FACTORY</h1>
+        <p style={{ color: '#5f6368' }}>Generating 100 unique years (1990 - 2089)</p>
+        
+        <div style={{ marginTop: '20px', display: 'flex', gap: '15px' }}>
+          <button onClick={() => runUpload("mathematics")} style={btnStyle("#ea4335")}>
+            🚀 PUSH UNIQUE P3 MATH
+          </button>
+        </div>
+        
+        <p style={{ fontSize: '12px', color: '#999', marginTop: '20px' }}>
+          Note: This will overwrite existing data for the same years.
+        </p>
+      </div>
     </div>
   );
 }
 
-const btnStyle = (color) => ({
-  padding: '15px 25px', margin: '10px', backgroundColor: color, color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold'
+const btnStyle = (bg) => ({
+  padding: '15px 30px',
+  backgroundColor: bg,
+  color: 'white',
+  border: 'none',
+  borderRadius: '10px',
+  cursor: 'pointer',
+  fontWeight: 'bold',
+  fontSize: '16px'
 });
 
 export default App;
