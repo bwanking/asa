@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { db } from './firebase'; 
 import { doc, setDoc } from 'firebase/firestore';
-
 // --- 1. DYNAMIC SVG LIBRARY (Used for Preview and satisfying Linter) ---
 const MathSVG = {
   SetObjects: ({ count, name }) => (
