@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { db } from './firebase'; 
 import { doc, setDoc } from 'firebase/firestore';
-
 // --- VISUAL COMPONENTS (The "Art" for the questions) ---
 const MathSVG = {
   SetObjects: ({ count, itemType }) => (
