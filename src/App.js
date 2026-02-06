@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { db } from './firebase'; 
 import { doc, setDoc } from 'firebase/firestore';
 
+
 // ... Keep your MathSVG components exactly as they are ...
 
 const App = () => {
