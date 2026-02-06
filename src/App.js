@@ -3,6 +3,7 @@ import { db } from './firebase';
 import { doc, setDoc } from 'firebase/firestore';
 
 
+
 // --- VISUAL COMPONENTS (Matches your App.jsx Engine) ---
 const MathSVG = {
   SetObjects: ({ count, itemType }) => (
