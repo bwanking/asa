@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { db } from './firebase'; 
 import { doc, setDoc } from 'firebase/firestore';
 
-
 // --- 1. ASSET PREVIEW (Linter Fix & Visual Test) ---
 const MathSVG = {
   SetObjects: ({ count, itemType }) => (
