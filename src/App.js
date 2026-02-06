@@ -2,136 +2,111 @@ import React, { useState } from 'react';
 import { db } from './firebase'; 
 import { doc, setDoc } from 'firebase/firestore';
 
-
-// --- 1. DYNAMIC PREVIEW ASSETS (Satisfies Linter) ---
+// --- 1. ASSET PREVIEW (Linter Fix & Visual Test) ---
 const MathSVG = {
-  SetObjects: ({ count, name }) => (
-    <div className="flex flex-col items-center border-2 border-black p-2 my-1 rounded-full w-20 h-20 mx-auto bg-white relative">
-      <span className="absolute -top-2 left-2 font-bold bg-white text-[10px]">Set {name}</span>
-      <div className="grid grid-cols-3 gap-1 mt-2">
+  SetObjects: ({ count, itemType }) => (
+    <div className="border-2 border-black rounded-3xl p-4 w-32 h-24 flex items-center justify-center bg-white relative mx-auto">
+      <div className="grid grid-cols-3 gap-2">
         {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="w-2 h-2 bg-black rounded-full"></div>
+          <div key={i} className={`w-3 h-3 rounded-full ${itemType === 'star' ? 'bg-yellow-400' : 'bg-blue-500'}`}></div>
         ))}
       </div>
     </div>
   ),
-  Fraction: ({ total }) => (
-    <svg width="40" height="40" className="mx-auto my-1">
-      <rect x="5" y="5" width="30" height="30" stroke="black" fill="none" strokeWidth="2" />
-      <line x1="20" y1="5" x2="20" y2="35" stroke="black" />
-      {total > 2 && <line x1="5" y1="20" x2="35" y2="20" stroke="black" />}
-    </svg>
+  FractionBox: ({ shaded, total }) => (
+    <div className="flex justify-center my-2">
+      {Array.from({ length: total }).map((_, i) => (
+        <div key={i} className={`w-8 h-8 border-2 border-black ${i < shaded ? 'bg-gray-400' : 'bg-white'}`}></div>
+      ))}
+    </div>
   )
 };
 
 const App = () => {
   const [loading, setLoading] = useState(false);
-  const [progress, setProgress] = useState(0);
+  const [count, setCount] = useState(0);
 
-  const uploadHighValueSets = async () => {
+  const uploadP1VisualSets = async () => {
     setLoading(true);
-    
-    // THEMES for variety - each Set will prioritize different themes
-    const themes = [
-      { name: "The Farm", items: ["cows", "goats", "hens"], prices: [2000, 5000] },
-      { name: "The Market", items: ["apples", "fish", "tomatoes"], prices: [500, 1000] },
-      { name: "Our School", items: ["pencils", "desks", "books"], prices: [200, 1500] },
-      { name: "The Kitchen", items: ["cups", "plates", "spoons"], prices: [300, 800] }
-    ];
+    const themes = ["Nature", "Home", "School", "Toys", "Animals"];
 
     for (let setId = 1; setId <= 100; setId++) {
-      let paperQuestions = [];
-      const currentTheme = themes[setId % themes.length];
+      let questions = [];
+      const theme = themes[setId % themes.length];
       const year = 1990 + setId - 1;
 
       for (let i = 1; i <= 50; i++) {
-        const seed = (setId * 50) + i;
-        const topicSelector = (i + setId) % 8; // Rolling variety
+        const seed = (setId * 100) + i;
+        const topic = i % 5;
         let q = { q: "", ans: "", options: [], artType: null, artValue: null };
 
-        switch(topicSelector) {
-          case 0: // SETS (Unique Objects)
-            const count = (seed % 4) + 3;
-            const obj = currentTheme.items[seed % 3];
-            q.q = `Draw a set of ${count} ${obj}:`;
-            q.ans = "drawing";
-            q.options = ["Correct Drawing", "Wrong Count", "Empty Set", "Numbers"];
-            q.artType = "sets";
-            q.artValue = { count, name: obj.toUpperCase() };
+        switch(topic) {
+          case 0: // VISUAL SETS
+            const memberCount = (seed % 4) + 2;
+            const item = ["balls", "stars", "trees", "cups"][seed % 4];
+            q.q = `Look at the picture. How many ${item} are in the set?`;
+            q.ans = `${memberCount}`;
+            q.options = [q.ans, `${memberCount + 1}`, "1", "9"].sort(() => Math.random() - 0.5);
+            q.artType = "set_visual";
+            q.artValue = { count: memberCount, item: item };
             break;
 
-          case 1: // FRACTIONS (Unique Shapes)
-            const den = (seed % 2 === 0) ? 2 : 4;
-            q.q = `In ${currentTheme.name}, half of the ${currentTheme.items[0]} are white. Shade the fraction:`;
-            q.ans = `1/${den}`;
-            q.options = [q.ans, "2/1", "1/10", "4/4"];
-            q.artType = "fraction";
-            q.artValue = { total: den };
+          case 1: // VISUAL FRACTIONS
+            const totalParts = (seed % 2 === 0) ? 2 : 4;
+            q.q = `What fraction of the shape is shaded?`;
+            q.ans = `1/${totalParts}`;
+            q.options = [q.ans, "2/1", "1/1", "0/4"].sort(() => Math.random() - 0.5);
+            q.artType = "fraction_visual";
+            q.artValue = { shaded: 1, total: totalParts };
             break;
 
-          case 2: // MONEY (Unique Pricing)
-            const price = currentTheme.prices[seed % 2];
-            const qty = (seed % 3) + 2;
-            q.q = `At ${currentTheme.name}, one ${currentTheme.items[1]} costs ${price} UGX. Find the cost of ${qty}:`;
-            q.ans = `${price * qty}`;
-            q.options = [q.ans, `${price}`, `${price + 100}`, "0"];
+          case 2: // ADDITION WITH PICTURES
+            const n1 = (seed % 3) + 1;
+            const n2 = (seed % 3) + 1;
+            q.q = `Count the items and add: ${n1} + ${n2} =`;
+            q.ans = `${n1 + n2}`;
+            q.options = [q.ans, `${n1 + n2 + 1}`, "0", "10"].sort(() => Math.random() - 0.5);
+            q.artType = "addition_visual";
+            q.artValue = { val1: n1, val2: n2 };
             break;
 
-          case 3: // MEASUREMENT
-            const unit = ["metres", "kilograms", "litres"][seed % 3];
-            const val1 = (seed % 20) + 10;
-            const val2 = (seed % 10) + 5;
-            q.q = `Add ${val1}${unit} to ${val2}${unit}:`;
-            q.ans = `${val1 + val2}${unit}`;
-            q.options = [q.ans, `${val1}${unit}`, `${val2}${unit}`, "100"];
-            break;
-
-          default: // WORD PROBLEMS (Themed Storytelling)
-            const n1 = 10 + (seed % 40);
-            const n2 = 2 + (seed % 8);
-            q.q = `There were ${n1} ${currentTheme.items[2]} in ${currentTheme.name}. ${n2} were broken. How many are left?`;
-            q.ans = `${n1 - n2}`;
-            q.options = [q.ans, `${n1 + n2}`, "0", "15"];
+          default: // BASIC NUMBER WORK
+            const num = (seed % 20);
+            q.q = `Which number comes after ${num}?`;
+            q.ans = `${num + 1}`;
+            q.options = [q.ans, `${num - 1}`, "21", "0"].sort(() => Math.random() - 0.5);
         }
-        q.options = q.options.sort(() => Math.random() - 0.5);
-        paperQuestions.push(q);
+        questions.push(q);
       }
 
-      await setDoc(doc(db, "UDA_EXAMS", `p3_mathematics_${year}`), {
-        metadata: { 
-          class: "P3", 
-          subject: "MATHEMATICS", 
-          theme: currentTheme.name,
-          year: year.toString(),
-          setId: setId 
-        },
-        questions: paperQuestions
+      await setDoc(doc(db, "UDA_EXAMS", `p1_mathematics_${year}`), {
+        metadata: { class: "P1", subject: "MATHEMATICS", theme, setId, year: year.toString() },
+        questions
       });
-      setProgress(setId);
+      setCount(setId);
     }
     setLoading(false);
-    alert("SUCCESS: 100 Unique Commercial Sets Uploaded!");
+    alert("100 Visual Sets Uploaded!");
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
-      <div className="bg-white p-10 rounded-3xl shadow-xl text-center max-w-lg">
-        <h1 className="text-3xl font-black text-blue-900">UDA PRODUCT FACTORY</h1>
-        <p className="text-gray-500 mt-2 font-medium">Generating High-Variety Commercial Sets (1-100)</p>
-        
-        <div className="my-8">
-          <button 
-            onClick={uploadHighValueSets} 
-            disabled={loading}
-            className={`w-full py-4 rounded-2xl text-white font-black transition-all ${loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:scale-105'}`}
-          >
-            {loading ? `UPLOADING SET ${progress}/100...` : "🚀 GENERATE & UPLOAD PRODUCTS"}
-          </button>
-        </div>
+    <div className="p-10 text-center font-sans">
+      <h1 className="text-4xl font-black mb-4">P1 VISUAL PRODUCT FACTORY</h1>
+      <p className="mb-8 text-gray-500">Creating 100 sets with heavy illustrations for P1 learners.</p>
+      
+      <button 
+        onClick={uploadP1VisualSets} 
+        disabled={loading}
+        className="bg-purple-600 text-white px-10 py-4 rounded-2xl font-bold shadow-xl hover:bg-purple-700"
+      >
+        {loading ? `Uploading Set ${count}...` : "🚀 PUSH 100 VISUAL SETS"}
+      </button>
 
-        <div className="flex justify-center gap-4 opacity-30 pointer-events-none">
-          <MathSVG.SetObjects count={3} name="A" />
-          <MathSVG.Fraction total={4} />
+      <div className="mt-12 opacity-40">
+        <p className="text-xs font-bold uppercase tracking-widest">Visual Asset Previews</p>
+        <div className="flex justify-center gap-8 mt-4">
+          <MathSVG.SetObjects count={4} itemType="star" />
+          <MathSVG.FractionBox shaded={1} total={4} />
         </div>
       </div>
     </div>
