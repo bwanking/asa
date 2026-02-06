@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { db } from './firebase'; 
 import { doc, setDoc } from 'firebase/firestore';
-// --- 1. DYNAMIC SVG LIBRARY (Used for Preview and satisfying Linter) ---
+
+// --- 1. DYNAMIC PREVIEW ASSETS (Satisfies Linter) ---
 const MathSVG = {
   SetObjects: ({ count, name }) => (
     <div className="flex flex-col items-center border-2 border-black p-2 my-1 rounded-full w-20 h-20 mx-auto bg-white relative">
@@ -14,148 +15,122 @@ const MathSVG = {
     </div>
   ),
   Fraction: ({ total }) => (
-    <svg width="50" height="50" className="mx-auto my-1">
-      <rect x="5" y="5" width="40" height="40" stroke="black" fill="none" strokeWidth="2" />
-      <line x1="25" y1="5" x2="25" y2="45" stroke="black" />
-      {total > 2 && <line x1="5" y1="25" x2="45" y2="25" stroke="black" />}
-    </svg>
-  ),
-  Clock: () => (
-    <svg width="50" height="50" className="mx-auto my-1">
-      <circle cx="25" cy="25" r="22" stroke="black" fill="none" strokeWidth="2" />
-      <line x1="25" y1="25" x2="25" y2="10" stroke="black" strokeWidth="2" /> 
-      <line x1="25" y1="25" x2="35" y2="25" stroke="black" strokeWidth="3" />
+    <svg width="40" height="40" className="mx-auto my-1">
+      <rect x="5" y="5" width="30" height="30" stroke="black" fill="none" strokeWidth="2" />
+      <line x1="20" y1="5" x2="20" y2="35" stroke="black" />
+      {total > 2 && <line x1="5" y1="20" x2="35" y2="20" stroke="black" />}
     </svg>
   )
 };
 
 const App = () => {
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState("Ready to push P3 Math");
+  const [progress, setProgress] = useState(0);
 
-  const uploadP3Math = async () => {
+  const uploadHighValueSets = async () => {
     setLoading(true);
-    setStatus("🚀 Uploading 100 Sets...");
+    
+    // THEMES for variety - each Set will prioritize different themes
+    const themes = [
+      { name: "The Farm", items: ["cows", "goats", "hens"], prices: [2000, 5000] },
+      { name: "The Market", items: ["apples", "fish", "tomatoes"], prices: [500, 1000] },
+      { name: "Our School", items: ["pencils", "desks", "books"], prices: [200, 1500] },
+      { name: "The Kitchen", items: ["cups", "plates", "spoons"], prices: [300, 800] }
+    ];
 
-    try {
-      for (let setId = 1; setId <= 100; setId++) {
-        let paperQuestions = [];
-        const year = 1990 + setId - 1;
-        const setBase = setId * 1000; 
+    for (let setId = 1; setId <= 100; setId++) {
+      let paperQuestions = [];
+      const currentTheme = themes[setId % themes.length];
+      const year = 1990 + setId - 1;
 
-        for (let i = 1; i <= 50; i++) {
-          const qId = setBase + i;
-          const topicSelector = (i + setId) % 10; // Rolling logic
-          let q = { q: "", ans: "", options: [], artType: null, artValue: null };
+      for (let i = 1; i <= 50; i++) {
+        const seed = (setId * 50) + i;
+        const topicSelector = (i + setId) % 8; // Rolling variety
+        let q = { q: "", ans: "", options: [], artType: null, artValue: null };
 
-          switch(topicSelector) {
-            case 0: // SETS
-              const cnt = (qId % 4) + 3;
-              const sName = ["A", "B", "P", "Q", "S"][qId % 5];
-              q.q = `How many members are in Set ${sName} shown below?`;
-              q.ans = `${cnt}`;
-              q.options = [q.ans, `${cnt + 1}`, `${cnt - 1}`, "10"];
-              q.artType = "sets";
-              q.artValue = { count: cnt, name: sName };
-              break;
+        switch(topicSelector) {
+          case 0: // SETS (Unique Objects)
+            const count = (seed % 4) + 3;
+            const obj = currentTheme.items[seed % 3];
+            q.q = `Draw a set of ${count} ${obj}:`;
+            q.ans = "drawing";
+            q.options = ["Correct Drawing", "Wrong Count", "Empty Set", "Numbers"];
+            q.artType = "sets";
+            q.artValue = { count, name: obj.toUpperCase() };
+            break;
 
-            case 1: // FRACTIONS
-              const isQuarter = qId % 2 !== 0;
-              q.q = `Identify the fraction shaded in the figure:`;
-              q.ans = isQuarter ? "1/4" : "1/2";
-              q.options = [q.ans, "1/3", "4/1", "2/2"];
-              q.artType = "fraction";
-              q.artValue = { total: isQuarter ? 4 : 2 };
-              break;
+          case 1: // FRACTIONS (Unique Shapes)
+            const den = (seed % 2 === 0) ? 2 : 4;
+            q.q = `In ${currentTheme.name}, half of the ${currentTheme.items[0]} are white. Shade the fraction:`;
+            q.ans = `1/${den}`;
+            q.options = [q.ans, "2/1", "1/10", "4/4"];
+            q.artType = "fraction";
+            q.artValue = { total: den };
+            break;
 
-            case 2: // MONEY
-              const price = (qId % 5 + 1) * 200;
-              q.q = `If a pen costs ${price} shillings, find the cost of 2 similar pens:`;
-              q.ans = `${price * 2}`;
-              q.options = [q.ans, `${price}`, `${price + 200}`, "2000"];
-              break;
+          case 2: // MONEY (Unique Pricing)
+            const price = currentTheme.prices[seed % 2];
+            const qty = (seed % 3) + 2;
+            q.q = `At ${currentTheme.name}, one ${currentTheme.items[1]} costs ${price} UGX. Find the cost of ${qty}:`;
+            q.ans = `${price * qty}`;
+            q.options = [q.ans, `${price}`, `${price + 100}`, "0"];
+            break;
 
-            case 3: // TIME
-              q.q = `Tell the time shown on the clock face below:`;
-              q.ans = "3:00";
-              q.options = ["3:00", "12:15", "6:00", "9:00"];
-              q.artType = "clock";
-              break;
+          case 3: // MEASUREMENT
+            const unit = ["metres", "kilograms", "litres"][seed % 3];
+            const val1 = (seed % 20) + 10;
+            const val2 = (seed % 10) + 5;
+            q.q = `Add ${val1}${unit} to ${val2}${unit}:`;
+            q.ans = `${val1 + val2}${unit}`;
+            q.options = [q.ans, `${val1}${unit}`, `${val2}${unit}`, "100"];
+            break;
 
-            case 4: // MEASUREMENT
-              const items = ["ruler", "pencil", "stick"];
-              q.q = `Which is longer, a ${items[qId % 3]} or a ${items[(qId + 1) % 3]}?`;
-              q.ans = items[qId % 3].length > items[(qId + 1) % 3].length ? items[qId % 3] : items[(qId + 1) % 3];
-              q.options = [items[0], items[1], items[2], "Both"];
-              break;
-
-            case 5: // PLACE VALUE
-              const num = 100 + (qId % 899);
-              const isTens = qId % 2 === 0;
-              q.q = `What digit is in the ${isTens ? 'Tens' : 'Hundreds'} place in ${num}?`;
-              const sNum = num.toString();
-              q.ans = isTens ? sNum[1] : sNum[0];
-              q.options = [q.ans, sNum[2], "0", "9"];
-              break;
-
-            case 6: // WORD PROBLEMS
-              const names = ["Musa", "Alice", "Okello", "Babirye"];
-              q.q = `${names[qId % 4]} had ${30 + (qId % 20)} mangoes and ate ${5 + (qId % 5)}. How many are left?`;
-              q.ans = `${(30 + (qId % 20)) - (5 + (qId % 5))}`;
-              q.options = [q.ans, "40", "10", "5"];
-              break;
-
-            case 8: // PATTERNS
-              const start = qId % 10;
-              q.q = `Fill in the missing number: ${start}, ${start + 2}, ${start + 4}, ____`;
-              q.ans = `${start + 6}`;
-              q.options = [q.ans, `${start + 5}`, `${start + 8}`, "20"];
-              break;
-
-            default: // MENTAL MATH
-              const n1 = (qId % 12) + 2;
-              q.q = `Work out: ${n1} x 2 =`;
-              q.ans = `${n1 * 2}`;
-              q.options = [q.ans, `${n1 + 2}`, `${n1}`, "24"];
-          }
-          q.options = q.options.sort(() => Math.random() - 0.5);
-          paperQuestions.push(q);
+          default: // WORD PROBLEMS (Themed Storytelling)
+            const n1 = 10 + (seed % 40);
+            const n2 = 2 + (seed % 8);
+            q.q = `There were ${n1} ${currentTheme.items[2]} in ${currentTheme.name}. ${n2} were broken. How many are left?`;
+            q.ans = `${n1 - n2}`;
+            q.options = [q.ans, `${n1 + n2}`, "0", "15"];
         }
-
-        await setDoc(doc(db, "UDA_EXAMS", `p3_mathematics_${year}`), {
-          metadata: { class: "P3", subject: "MATHEMATICS", totalQuestions: 50, year: year.toString() },
-          questions: paperQuestions
-        });
-        console.log(`✅ ${year} Uploaded`);
+        q.options = q.options.sort(() => Math.random() - 0.5);
+        paperQuestions.push(q);
       }
-      setStatus("✅ ALL 100 SETS UPLOADED SUCCESSFULLY!");
-    } catch (err) {
-      setStatus("❌ Error: " + err.message);
+
+      await setDoc(doc(db, "UDA_EXAMS", `p3_mathematics_${year}`), {
+        metadata: { 
+          class: "P3", 
+          subject: "MATHEMATICS", 
+          theme: currentTheme.name,
+          year: year.toString(),
+          setId: setId 
+        },
+        questions: paperQuestions
+      });
+      setProgress(setId);
     }
     setLoading(false);
+    alert("SUCCESS: 100 Unique Commercial Sets Uploaded!");
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#f7fafc', padding: '20px' }}>
-      <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '24px', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', textAlign: 'center' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: '900', color: '#2d3748', marginBottom: '10px' }}>UDA ADMIN PANEL</h1>
-        <p style={{ color: '#718096', marginBottom: '30px' }}>{status}</p>
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
+      <div className="bg-white p-10 rounded-3xl shadow-xl text-center max-w-lg">
+        <h1 className="text-3xl font-black text-blue-900">UDA PRODUCT FACTORY</h1>
+        <p className="text-gray-500 mt-2 font-medium">Generating High-Variety Commercial Sets (1-100)</p>
         
-        <button 
-          onClick={uploadP3Math} 
-          disabled={loading}
-          style={{ padding: '15px 50px', backgroundColor: loading ? '#cbd5e0' : '#4299e1', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 'bold', fontSize: '1.2rem', cursor: 'pointer', transition: '0.3s' }}
-        >
-          {loading ? "UPLOADING..." : "🚀 START P3 MATH UPLOAD"}
-        </button>
+        <div className="my-8">
+          <button 
+            onClick={uploadHighValueSets} 
+            disabled={loading}
+            className={`w-full py-4 rounded-2xl text-white font-black transition-all ${loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700 shadow-lg hover:scale-105'}`}
+          >
+            {loading ? `UPLOADING SET ${progress}/100...` : "🚀 GENERATE & UPLOAD PRODUCTS"}
+          </button>
+        </div>
 
-        <div style={{ marginTop: '40px', borderTop: '1px solid #edf2f7', paddingTop: '20px' }}>
-          <p style={{ fontSize: '12px', color: '#a0aec0', marginBottom: '10px' }}>ASSET PREVIEW (Linter Requirement)</p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', opacity: 0.5 }}>
-            <MathSVG.SetObjects count={3} name="P" />
-            <MathSVG.Fraction total={4} />
-            <MathSVG.Clock />
-          </div>
+        <div className="flex justify-center gap-4 opacity-30 pointer-events-none">
+          <MathSVG.SetObjects count={3} name="A" />
+          <MathSVG.Fraction total={4} />
         </div>
       </div>
     </div>
