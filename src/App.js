@@ -39,7 +39,8 @@ const App = () => {
       for (let i = 1; i <= 50; i++) {
         const seed = (setId * 100) + i;
         const topic = i % 5;
-        let q = { q: "", ans: "", options: [], artType: null, artValue: null };
+        // Added 'shape' to the initial question object
+        let q = { q: "", ans: "", options: [], artType: null, artValue: null, shape: null };
 
         switch(topic) {
           case 0: // VISUAL SETS
@@ -52,13 +53,14 @@ const App = () => {
             q.artValue = { count: memberCount, item: item };
             break;
 
-          case 1: // VISUAL FRACTIONS
+          case 1: // VISUAL FRACTIONS (Now includes a square shape)
             const totalParts = (seed % 2 === 0) ? 2 : 4;
             q.q = `What fraction of the shape is shaded?`;
             q.ans = `1/${totalParts}`;
             q.options = [q.ans, "2/1", "1/1", "0/4"].sort(() => Math.random() - 0.5);
             q.artType = "fraction_visual";
             q.artValue = { shaded: 1, total: totalParts };
+            q.shape = "square"; // Added shape for fractions
             break;
 
           case 2: // ADDITION WITH PICTURES
@@ -69,6 +71,14 @@ const App = () => {
             q.options = [q.ans, `${n1 + n2 + 1}`, "0", "10"].sort(() => Math.random() - 0.5);
             q.artType = "addition_visual";
             q.artValue = { val1: n1, val2: n2 };
+            break;
+
+          case 3: // NEW: IDENTIFY SHAPE
+            const shapeType = ["triangle", "circle", "rectangle"][seed % 3];
+            q.q = `What is the name of the shape shown below?`;
+            q.ans = shapeType.charAt(0).toUpperCase() + shapeType.slice(1);
+            q.options = [q.ans, "Oval", "Kite", "Star"].sort(() => Math.random() - 0.5);
+            q.shape = shapeType; // Added shape here
             break;
 
           default: // BASIC NUMBER WORK
@@ -87,7 +97,7 @@ const App = () => {
       setCount(setId);
     }
     setLoading(false);
-    alert("100 Visual Sets Uploaded!");
+    alert("100 Visual Sets Uploaded with Shapes!");
   };
 
   return (
