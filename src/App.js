@@ -33,7 +33,7 @@ const App = () => {
   const [pdfUrl, setPdfUrl] = useState(null);
   const [fetchingPdf, setFetchingPdf] = useState(false);
 
-  // --- GITHUB FETCH LOGIC (Updated for Inline Viewing) ---
+  // --- GITHUB FETCH LOGIC (Fixed for Private PDF Viewing) ---
   const fetchPrivatePdf = async () => {
     setFetchingPdf(true);
     const GITHUB_TOKEN = "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"; 
@@ -42,31 +42,30 @@ const App = () => {
     const FILE_PATH = "BABY MID TERM II NUMBERS - 2023.pdf"; 
 
     try {
-      // Step 1: Get the file metadata (including base64 content)
       const response = await fetch(
         `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(FILE_PATH)}`,
         {
           headers: {
             Authorization: `Bearer ${GITHUB_TOKEN}`,
-            Accept: "application/vnd.github.v3+json", 
+            // We use 'application/vnd.github.v3.raw' to get the actual file content
+            Accept: "application/vnd.github.v3.raw", 
           },
         }
       );
 
-      if (!response.ok) throw new Error("Failed to fetch PDF data.");
+      if (!response.ok) throw new Error("Failed to fetch PDF. Check permissions or file path.");
 
-      const data = await response.json();
+      // CRITICAL FIX: Fetch as a BLOB, not JSON
+      const blob = await response.blob();
       
-      // Step 2: GitHub returns content in base64. 
-      // We create a Data URI which browsers prefer for inline embedding.
-      const base64Content = data.content.replace(/\n/g, ''); // Remove newlines
-      const dataUri = `data:application/pdf;base64,${base64Content}`;
+      // Create a blob URL that the browser can display in an iframe/embed
+      const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
       
-      setPdfUrl(dataUri);
+      setPdfUrl(blobUrl);
       setPreviewData(null); 
     } catch (error) {
       console.error("Error fetching PDF:", error);
-      alert("Error loading PDF: " + error.message);
+      alert("Error: " + error.message);
     } finally {
       setFetchingPdf(false);
     }
@@ -199,23 +198,25 @@ const App = () => {
          </div>
       </div>
 
-      {/* Updated Viewer Section */}
+      {/* PDF View Container */}
       {pdfUrl && (
         <div className="max-w-5xl mx-auto bg-white p-4 shadow-2xl rounded-lg mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="font-bold">Viewing: BABY MID TERM II</h2>
-            <button onClick={() => setPdfUrl(null)} className="text-red-500 font-bold">Close Viewer</button>
+            <h2 className="font-bold">Repository Document: BABY MID TERM II</h2>
+            <button onClick={() => {
+                URL.revokeObjectURL(pdfUrl); // Cleanup memory
+                setPdfUrl(null);
+            }} className="text-red-500 font-bold">Close Viewer</button>
           </div>
-          {/* Using <embed> instead of <iframe> for better PDF behavior */}
-          <embed 
+          <iframe 
             src={pdfUrl} 
-            type="application/pdf"
             className="w-full h-[800px] border-2 border-gray-300 rounded"
+            title="PDF Viewer"
           />
         </div>
       )}
 
-      {/* Generated Questions Preview */}
+      {/* Questions Preview */}
       {previewData && (
         <div className="max-w-[800px] mx-auto bg-white p-12 shadow-2xl border-2 border-gray-300">
           <div className="text-center border-b-4 border-black pb-4 mb-6">
