@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { db } from './firebase'; 
 import { doc, setDoc } from 'firebase/firestore';
@@ -34,32 +33,37 @@ const App = () => {
   const [pdfUrl, setPdfUrl] = useState(null);
   const [fetchingPdf, setFetchingPdf] = useState(false);
 
-  // --- GITHUB FETCH LOGIC ---
+  // --- GITHUB FETCH LOGIC (Updated for Inline Viewing) ---
   const fetchPrivatePdf = async () => {
     setFetchingPdf(true);
     const GITHUB_TOKEN = "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"; 
     const OWNER = "bwanking";
     const REPO = "uda-exams-vault";
-    // The API expects the path from the root of the repo, URL-encoded for spaces
-    const FILE_PATH = encodeURIComponent("BABY MID TERM II NUMBERS - 2023.pdf"); 
+    const FILE_PATH = "BABY MID TERM II NUMBERS - 2023.pdf"; 
 
     try {
+      // Step 1: Get the file metadata (including base64 content)
       const response = await fetch(
-        `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
+        `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(FILE_PATH)}`,
         {
           headers: {
             Authorization: `Bearer ${GITHUB_TOKEN}`,
-            Accept: "application/vnd.github.v3.raw", 
+            Accept: "application/vnd.github.v3+json", 
           },
         }
       );
 
-      if (!response.ok) throw new Error("Failed to fetch PDF from GitHub. Check if token is valid and file exists.");
+      if (!response.ok) throw new Error("Failed to fetch PDF data.");
 
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      setPdfUrl(url);
-      setPreviewData(null); // Clear preview when showing PDF
+      const data = await response.json();
+      
+      // Step 2: GitHub returns content in base64. 
+      // We create a Data URI which browsers prefer for inline embedding.
+      const base64Content = data.content.replace(/\n/g, ''); // Remove newlines
+      const dataUri = `data:application/pdf;base64,${base64Content}`;
+      
+      setPdfUrl(dataUri);
+      setPreviewData(null); 
     } catch (error) {
       console.error("Error fetching PDF:", error);
       alert("Error loading PDF: " + error.message);
@@ -75,7 +79,6 @@ const App = () => {
     for (let i = 1; i <= 50; i++) {
       const qId = setBase + i;
       let q = { q: "", ans: "", options: [], artType: null, artValue: null, shape: "" };
-
       const topicSelector = (i + setId) % 10; 
 
       switch(topicSelector) {
@@ -87,7 +90,6 @@ const App = () => {
           q.artType = "set_visual";
           q.artValue = { count: cnt, item: item };
           break;
-
         case 1: 
           const den = (qId % 2 === 0) ? 2 : 4;
           q.q = `What fraction of the shape is shaded?`;
@@ -96,26 +98,22 @@ const App = () => {
           q.artValue = { shaded: 1, total: den };
           q.shape = qId % 2 === 0 ? "circle" : "square";
           break;
-
         case 2: 
           const price = (qId % 5 + 1) * 100;
           q.q = `If a pencil costs ${price} shillings, find the cost of 2 pencils:`;
           q.ans = `${price * 2}`;
           break;
-
         case 3: 
           const hours = (qId % 12) + 1;
           q.q = `It is ${hours} o'clock. Is this time in the morning or night?`;
           q.ans = "Morning";
           q.options = ["Morning", "Night", "Afternoon", "Evening"];
           break;
-
         case 4: 
           q.q = `Which one is heavier, a Jerrycan of water or a plastic cup?`;
           q.ans = `Jerrycan`;
           q.options = ["Jerrycan", "Cup", "Both", "None"];
           break;
-
         case 5: 
           const val = (qId % 20) + 10;
           const t = Math.floor(val / 10);
@@ -123,7 +121,6 @@ const App = () => {
           q.q = `What number is shown by ${t} tens and ${o} ones?`;
           q.ans = `${val}`;
           break;
-
         case 6: 
           const n1 = (qId % 3) + 1;
           const n2 = (qId % 3) + 2;
@@ -132,20 +129,17 @@ const App = () => {
           q.artType = "addition_visual";
           q.artValue = { val1: n1, val2: n2 };
           break;
-
         case 7: 
           const shapes = ["Circle", "Triangle", "Square", "Rectangle"];
           const selected = shapes[qId % 4];
           q.q = `Identify the shape: This is a ______________`;
           q.ans = selected;
           break;
-
         case 8: 
           const start = qId % 10;
           q.q = `Fill in the missing number: ${start}, ${start+2}, ${start+4}, ____`;
           q.ans = `${start + 6}`;
           break;
-
         default: 
           const num = (qId % 10) + 1;
           const names = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
@@ -181,7 +175,7 @@ const App = () => {
       setCount(setId);
     }
     setLoading(false);
-    alert("Database updated with alternating sets!");
+    alert("Database updated!");
   };
 
   return (
@@ -200,27 +194,28 @@ const App = () => {
               className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold"
               disabled={fetchingPdf}
             >
-               {fetchingPdf ? "Fetching PDF..." : "View PDF from Vault"}
+               {fetchingPdf ? "Fetching..." : "View PDF from Vault"}
             </button>
          </div>
       </div>
 
-      {/* PDF View */}
+      {/* Updated Viewer Section */}
       {pdfUrl && (
         <div className="max-w-5xl mx-auto bg-white p-4 shadow-2xl rounded-lg mb-8">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="font-bold">Repository Document: BABY MID TERM II</h2>
+            <h2 className="font-bold">Viewing: BABY MID TERM II</h2>
             <button onClick={() => setPdfUrl(null)} className="text-red-500 font-bold">Close Viewer</button>
           </div>
-          <iframe 
+          {/* Using <embed> instead of <iframe> for better PDF behavior */}
+          <embed 
             src={pdfUrl} 
+            type="application/pdf"
             className="w-full h-[800px] border-2 border-gray-300 rounded"
-            title="GitHub PDF Content"
           />
         </div>
       )}
 
-      {/* Generated Questions View */}
+      {/* Generated Questions Preview */}
       {previewData && (
         <div className="max-w-[800px] mx-auto bg-white p-12 shadow-2xl border-2 border-gray-300">
           <div className="text-center border-b-4 border-black pb-4 mb-6">
