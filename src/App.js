@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { db } from './firebase'; 
 import { doc, setDoc } from 'firebase/firestore';
 
-
-
 // --- VISUAL COMPONENTS (Matches your App.jsx Engine) ---
 const MathSVG = {
   SetObjects: ({ count, itemType }) => (
@@ -30,6 +28,44 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [count, setCount] = useState(0);
   const [previewData, setPreviewData] = useState(null);
+  
+  // PDF State
+  const [pdfUrl, setPdfUrl] = useState(null);
+  const [fetchingPdf, setFetchingPdf] = useState(false);
+
+  // --- GITHUB FETCH LOGIC ---
+  const fetchPrivatePdf = async () => {
+    setFetchingPdf(true);
+    const GITHUB_TOKEN = "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"; 
+    const OWNER = "bwanking";
+    const REPO = "uda-exams-vault";
+    // The API expects the path from the root of the repo, URL-encoded for spaces
+    const FILE_PATH = encodeURIComponent("BABY MID TERM II NUMBERS - 2023.pdf"); 
+
+    try {
+      const response = await fetch(
+        `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FILE_PATH}`,
+        {
+          headers: {
+            Authorization: `Bearer ${GITHUB_TOKEN}`,
+            Accept: "application/vnd.github.v3.raw", 
+          },
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to fetch PDF from GitHub. Check if token is valid and file exists.");
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      setPdfUrl(url);
+      setPreviewData(null); // Clear preview when showing PDF
+    } catch (error) {
+      console.error("Error fetching PDF:", error);
+      alert("Error loading PDF: " + error.message);
+    } finally {
+      setFetchingPdf(false);
+    }
+  };
 
   const generateQuestions = (setId) => {
     let questions = [];
@@ -39,11 +75,10 @@ const App = () => {
       const qId = setBase + i;
       let q = { q: "", ans: "", options: [], artType: null, artValue: null, shape: "" };
 
-      // --- ALTERNATING TOPIC LOGIC (Copied from your P.2 example) ---
       const topicSelector = (i + setId) % 10; 
 
       switch(topicSelector) {
-        case 0: // SETS
+        case 0: 
           const cnt = (qId % 4) + 3;
           const item = ["balls", "stars", "cups", "pots"][qId % 4];
           q.q = `Look at the picture. How many ${item} are in the set?`;
@@ -52,7 +87,7 @@ const App = () => {
           q.artValue = { count: cnt, item: item };
           break;
 
-        case 1: // FRACTIONS
+        case 1: 
           const den = (qId % 2 === 0) ? 2 : 4;
           q.q = `What fraction of the shape is shaded?`;
           q.ans = `1/${den}`;
@@ -61,26 +96,26 @@ const App = () => {
           q.shape = qId % 2 === 0 ? "circle" : "square";
           break;
 
-        case 2: // MONEY (Ugandan Shillings)
+        case 2: 
           const price = (qId % 5 + 1) * 100;
           q.q = `If a pencil costs ${price} shillings, find the cost of 2 pencils:`;
           q.ans = `${price * 2}`;
           break;
 
-        case 3: // TIME
+        case 3: 
           const hours = (qId % 12) + 1;
           q.q = `It is ${hours} o'clock. Is this time in the morning or night?`;
           q.ans = "Morning";
           q.options = ["Morning", "Night", "Afternoon", "Evening"];
           break;
 
-        case 4: // MEASUREMENT
+        case 4: 
           q.q = `Which one is heavier, a Jerrycan of water or a plastic cup?`;
           q.ans = `Jerrycan`;
           q.options = ["Jerrycan", "Cup", "Both", "None"];
           break;
 
-        case 5: // PLACE VALUE
+        case 5: 
           const val = (qId % 20) + 10;
           const t = Math.floor(val / 10);
           const o = val % 10;
@@ -88,7 +123,7 @@ const App = () => {
           q.ans = `${val}`;
           break;
 
-        case 6: // ADDITION VISUAL
+        case 6: 
           const n1 = (qId % 3) + 1;
           const n2 = (qId % 3) + 2;
           q.q = `Count the items and add: ${n1} + ${n2} =`;
@@ -97,27 +132,26 @@ const App = () => {
           q.artValue = { val1: n1, val2: n2 };
           break;
 
-        case 7: // GEOMETRY
+        case 7: 
           const shapes = ["Circle", "Triangle", "Square", "Rectangle"];
           const selected = shapes[qId % 4];
           q.q = `Identify the shape: This is a ______________`;
           q.ans = selected;
           break;
 
-        case 8: // PATTERNS
+        case 8: 
           const start = qId % 10;
           q.q = `Fill in the missing number: ${start}, ${start+2}, ${start+4}, ____`;
           q.ans = `${start + 6}`;
           break;
 
-        default: // NUMBER NAMES
+        default: 
           const num = (qId % 10) + 1;
           const names = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
           q.q = `Write the number ${num} in words:`;
           q.ans = names[num];
       }
 
-      // --- AUTO-GENERATE OPTIONS ---
       if (q.options.length === 0) {
         const correct = q.ans;
         const d1 = isNaN(correct) ? "None" : parseInt(correct) + 1;
@@ -130,7 +164,10 @@ const App = () => {
     return questions;
   };
 
-  const handlePreview = () => setPreviewData(generateQuestions(1));
+  const handlePreview = () => {
+    setPdfUrl(null);
+    setPreviewData(generateQuestions(1));
+  };
 
   const uploadP1VisualSets = async () => {
     setLoading(true);
@@ -149,17 +186,40 @@ const App = () => {
   return (
     <div className="min-h-screen bg-gray-200 p-4 md:p-8 font-serif">
       <div className="max-w-4xl mx-auto mb-8 bg-white p-6 rounded-xl shadow-lg">
-         <h1 className="text-2xl font-bold mb-4">UDA Question Paper Generator (Alternating)</h1>
-         <div className="flex gap-4">
+         <h1 className="text-2xl font-bold mb-4">UDA Question Paper Generator</h1>
+         <div className="flex flex-wrap gap-4">
             <button onClick={uploadP1VisualSets} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">
-               {loading ? `Uploading ${count}%` : "Push to Database"}
+                {loading ? `Uploading ${count}%` : "Push to Database"}
             </button>
             <button onClick={handlePreview} className="bg-slate-800 text-white px-6 py-2 rounded-lg font-bold">
-               Preview Format
+                Preview Format
+            </button>
+            <button 
+              onClick={fetchPrivatePdf} 
+              className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold"
+              disabled={fetchingPdf}
+            >
+               {fetchingPdf ? "Fetching PDF..." : "View PDF from Vault"}
             </button>
          </div>
       </div>
 
+      {/* PDF View */}
+      {pdfUrl && (
+        <div className="max-w-5xl mx-auto bg-white p-4 shadow-2xl rounded-lg mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="font-bold">Repository Document: BABY MID TERM II</h2>
+            <button onClick={() => setPdfUrl(null)} className="text-red-500 font-bold">Close Viewer</button>
+          </div>
+          <iframe 
+            src={pdfUrl} 
+            className="w-full h-[800px] border-2 border-gray-300 rounded"
+            title="GitHub PDF Content"
+          />
+        </div>
+      )}
+
+      {/* Generated Questions View */}
       {previewData && (
         <div className="max-w-[800px] mx-auto bg-white p-12 shadow-2xl border-2 border-gray-300">
           <div className="text-center border-b-4 border-black pb-4 mb-6">
