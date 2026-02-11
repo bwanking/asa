@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { db } from './firebase'; 
-import { doc, setDoc } from 'firebase/firestore';
+// Removed unused Firebase imports to fix Vercel build error
 
 const App = () => {
   const [pdfUrl, setPdfUrl] = useState(null);
@@ -42,19 +41,17 @@ const App = () => {
   };
 
   // --- 2. SET MAPPING ---
-  // You can expand this list as you add more files to your GitHub Repo
   const examSets = [
     { id: 1, label: "Set 1", fileName: "BABY MID TERM II NUMBERS - 2023.pdf" },
-    { id: 2, label: "Set 2", fileName: "TOP CLASS ENGLISH - 2023.pdf" }, // Example name
-    { id: 3, label: "Set 3", fileName: "P1 MATHS END OF TERM - 2024.pdf" }, // Example name
-    // Add more mappings here...
+    { id: 2, label: "Set 2", fileName: "TOP CLASS ENGLISH - 2023.pdf" }, 
+    { id: 3, label: "Set 3", fileName: "P1 MATHS END OF TERM - 2024.pdf" }, 
   ];
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar - Matching your screenshot */}
+      {/* Sidebar */}
       <div className="w-64 bg-[#0a192f] text-white p-6 flex flex-col gap-8">
-        <h1 className="text-3xl font-italic font-bold text-blue-400">UDA</h1>
+        <h1 className="text-3xl italic font-bold text-blue-400">UDA</h1>
         <nav className="flex flex-col gap-4">
           <div className="bg-blue-600 p-3 rounded-lg flex items-center gap-3 cursor-pointer">
             <span>🐣</span> Nursery
@@ -76,7 +73,9 @@ const App = () => {
       {/* Main Content */}
       <div className="flex-1 p-8">
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-blue-600 font-bold uppercase">← Back to Numeracy</h2>
+          <h2 className="text-blue-600 font-bold uppercase cursor-pointer" onClick={() => setPdfUrl(null)}>
+            ← Back to Numeracy
+          </h2>
         </div>
 
         {/* The Grid of Sets */}
@@ -92,12 +91,12 @@ const App = () => {
               </button>
             ))}
             
-            {/* Placeholder for undefined sets */}
-            {[...Array(40)].map((_, i) => {
-               if(i + 4 > 49) return null; 
+            {/* Placeholder for future sets */}
+            {[...Array(49)].map((_, i) => {
+               if(i + 4 > 56) return null; 
                return (
-                <button key={i+4} className="bg-white/50 p-6 rounded-xl border border-slate-100 text-slate-400 italic text-sm">
-                  Set {i+4} (Empty)
+                <button key={i+4} className="bg-white/50 p-6 rounded-xl border border-slate-100 text-slate-400 italic text-sm cursor-not-allowed">
+                  Set {i+4}
                 </button>
                )
             })}
@@ -107,7 +106,8 @@ const App = () => {
         {/* Loading State */}
         {fetchingPdf && (
           <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg shadow-xl animate-pulse">
+            <div className="bg-white p-6 rounded-lg shadow-xl animate-pulse flex items-center gap-3">
+              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
               Opening {currentPaperName}...
             </div>
           </div>
@@ -115,7 +115,7 @@ const App = () => {
 
         {/* PDF Viewer */}
         {pdfUrl && (
-          <div className="max-w-5xl mx-auto bg-white p-4 shadow-2xl rounded-lg animate-in fade-in duration-500">
+          <div className="max-w-5xl mx-auto bg-white p-4 shadow-2xl rounded-lg">
             <div className="flex justify-between items-center mb-4 border-b pb-2">
               <h2 className="font-bold text-slate-700 uppercase">{currentPaperName}</h2>
               <button 
