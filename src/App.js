@@ -34,8 +34,8 @@ const App = () => {
   // --- GITHUB FETCH LOGIC ---
   const fetchPrivatePdf = async () => {
     setFetchingPdf(true);
-    // Note: If this fails, generate a new token at GitHub Settings -> Developer Settings
-    const GITHUB_TOKEN = "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"; 
+    // Updated Token as requested
+    const GITHUB_TOKEN = "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"; 
     const OWNER = "bwanking";
     const REPO = "uda-exams-vault";
     const FILE_PATH = "BABY MID TERM II NUMBERS - 2023.pdf"; 
@@ -45,7 +45,8 @@ const App = () => {
         `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(FILE_PATH)}`,
         {
           headers: {
-            Authorization: `Token ${GITHUB_TOKEN}`, // Changed 'Bearer' to 'Token' for standard compatibility
+            // Using 'Token' or 'Bearer' depending on GitHub's current requirement
+            Authorization: `Token ${GITHUB_TOKEN}`, 
             Accept: "application/vnd.github.v3.raw", 
           },
         }
@@ -53,16 +54,17 @@ const App = () => {
 
       if (!response.ok) {
         console.error("GitHub Status:", response.status);
-        throw new Error(`GitHub Error ${response.status}: Failed to fetch. Check if token is expired.`);
+        throw new Error(`Failed to fetch PDF (Status: ${response.status}). Check if the new token has 'repo' permissions.`);
       }
 
       const blob = await response.blob();
+      // Ensure the blob is specifically handled as a PDF
       const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
       
       setPdfUrl(blobUrl);
       setPreviewData(null); 
     } catch (error) {
-      console.error("Detailed Error:", error);
+      console.error("Error details:", error);
       alert(error.message);
     } finally {
       setFetchingPdf(false);
@@ -195,14 +197,15 @@ const App = () => {
          </div>
       </div>
 
+      {/* PDF View Container */}
       {pdfUrl && (
         <div className="max-w-5xl mx-auto bg-white p-4 shadow-2xl rounded-lg mb-8">
           <div className="flex justify-between items-center mb-4 border-b pb-2">
-            <h2 className="font-bold text-slate-700 uppercase">Vault Document: BABY MID TERM II</h2>
+            <h2 className="font-bold text-slate-700">Vault Document: BABY MID TERM II</h2>
             <button onClick={() => {
                 URL.revokeObjectURL(pdfUrl); 
                 setPdfUrl(null);
-            }} className="text-red-500 font-black px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">Close Viewer</button>
+            }} className="text-red-500 font-bold px-3 py-1 border border-red-500 rounded hover:bg-red-50">Close Viewer</button>
           </div>
           <iframe 
             src={pdfUrl} 
@@ -212,6 +215,7 @@ const App = () => {
         </div>
       )}
 
+      {/* Questions Preview */}
       {previewData && (
         <div className="max-w-[800px] mx-auto bg-white p-12 shadow-2xl border-2 border-gray-300">
           <div className="text-center border-b-4 border-black pb-4 mb-6">
