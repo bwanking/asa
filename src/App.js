@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import { db } from './firebase'; 
 import { doc, setDoc } from 'firebase/firestore';
 
-// --- VISUAL COMPONENTS (Matches your App.jsx Engine) ---
+// --- VISUAL COMPONENTS ---
 const MathSVG = {
   SetObjects: ({ count, itemType }) => (
     <div className="border-2 border-slate-300 rounded-2xl p-4 w-40 h-28 flex items-center justify-center bg-white mx-auto">
@@ -29,14 +28,13 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [count, setCount] = useState(0);
   const [previewData, setPreviewData] = useState(null);
-  
-  // PDF State
   const [pdfUrl, setPdfUrl] = useState(null);
   const [fetchingPdf, setFetchingPdf] = useState(false);
 
-  // --- GITHUB FETCH LOGIC (Fixed for Private PDF Viewing) ---
+  // --- GITHUB FETCH LOGIC ---
   const fetchPrivatePdf = async () => {
     setFetchingPdf(true);
+    // Note: If this fails, generate a new token at GitHub Settings -> Developer Settings
     const GITHUB_TOKEN = "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"; 
     const OWNER = "bwanking";
     const REPO = "uda-exams-vault";
@@ -47,26 +45,25 @@ const App = () => {
         `https://api.github.com/repos/${OWNER}/${REPO}/contents/${encodeURIComponent(FILE_PATH)}`,
         {
           headers: {
-            Authorization: `Bearer ${GITHUB_TOKEN}`,
-            // We use 'application/vnd.github.v3.raw' to get the actual file content
+            Authorization: `Token ${GITHUB_TOKEN}`, // Changed 'Bearer' to 'Token' for standard compatibility
             Accept: "application/vnd.github.v3.raw", 
           },
         }
       );
 
-      if (!response.ok) throw new Error("Failed to fetch PDF. Check permissions or file path.");
+      if (!response.ok) {
+        console.error("GitHub Status:", response.status);
+        throw new Error(`GitHub Error ${response.status}: Failed to fetch. Check if token is expired.`);
+      }
 
-      // CRITICAL FIX: Fetch as a BLOB, not JSON
       const blob = await response.blob();
-      
-      // Create a blob URL that the browser can display in an iframe/embed
       const blobUrl = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
       
       setPdfUrl(blobUrl);
       setPreviewData(null); 
     } catch (error) {
-      console.error("Error fetching PDF:", error);
-      alert("Error: " + error.message);
+      console.error("Detailed Error:", error);
+      alert(error.message);
     } finally {
       setFetchingPdf(false);
     }
@@ -75,7 +72,6 @@ const App = () => {
   const generateQuestions = (setId) => {
     let questions = [];
     const setBase = setId * 100;
-
     for (let i = 1; i <= 50; i++) {
       const qId = setBase + i;
       let q = { q: "", ans: "", options: [], artType: null, artValue: null, shape: "" };
@@ -181,17 +177,17 @@ const App = () => {
   return (
     <div className="min-h-screen bg-gray-200 p-4 md:p-8 font-serif">
       <div className="max-w-4xl mx-auto mb-8 bg-white p-6 rounded-xl shadow-lg">
-         <h1 className="text-2xl font-bold mb-4">UDA Question Paper Generator</h1>
-         <div className="flex flex-wrap gap-4">
-            <button onClick={uploadP1VisualSets} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">
+         <h1 className="text-2xl font-bold mb-4 text-center">UDA Question Paper Generator</h1>
+         <div className="flex flex-wrap gap-4 justify-center">
+            <button onClick={uploadP1VisualSets} className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition">
                 {loading ? `Uploading ${count}%` : "Push to Database"}
             </button>
-            <button onClick={handlePreview} className="bg-slate-800 text-white px-6 py-2 rounded-lg font-bold">
+            <button onClick={handlePreview} className="bg-slate-800 text-white px-6 py-2 rounded-lg font-bold hover:bg-slate-900 transition">
                 Preview Format
             </button>
             <button 
               onClick={fetchPrivatePdf} 
-              className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold"
+              className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700 transition"
               disabled={fetchingPdf}
             >
                {fetchingPdf ? "Fetching..." : "View PDF from Vault"}
@@ -199,15 +195,14 @@ const App = () => {
          </div>
       </div>
 
-      {/* PDF View Container */}
       {pdfUrl && (
         <div className="max-w-5xl mx-auto bg-white p-4 shadow-2xl rounded-lg mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="font-bold">Repository Document: BABY MID TERM II</h2>
+          <div className="flex justify-between items-center mb-4 border-b pb-2">
+            <h2 className="font-bold text-slate-700 uppercase">Vault Document: BABY MID TERM II</h2>
             <button onClick={() => {
-                URL.revokeObjectURL(pdfUrl); // Cleanup memory
+                URL.revokeObjectURL(pdfUrl); 
                 setPdfUrl(null);
-            }} className="text-red-500 font-bold">Close Viewer</button>
+            }} className="text-red-500 font-black px-3 py-1 border border-red-500 rounded hover:bg-red-50 transition">Close Viewer</button>
           </div>
           <iframe 
             src={pdfUrl} 
@@ -217,12 +212,11 @@ const App = () => {
         </div>
       )}
 
-      {/* Questions Preview */}
       {previewData && (
         <div className="max-w-[800px] mx-auto bg-white p-12 shadow-2xl border-2 border-gray-300">
           <div className="text-center border-b-4 border-black pb-4 mb-6">
             <h1 className="text-3xl font-black uppercase">UDA Primary School Examinations</h1>
-            <p className="font-bold text-lg">P.1 Mathematics Curriculum Assessment</p>
+            <p className="font-bold text-lg">P.1 Mathematics Assessment</p>
           </div>
           <div className="space-y-12">
             {previewData.slice(0, 10).map((item, idx) => (
@@ -232,14 +226,14 @@ const App = () => {
                   {item.artType === 'set_visual' && <MathSVG.SetObjects count={item.artValue.count} itemType={item.artValue.item} />}
                   {item.artType === 'fraction_visual' && <MathSVG.FractionBox shaded={1} total={item.artValue.total} shape={item.shape} />}
                   {item.artType === 'addition_visual' && (
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-4 justify-center">
                        <MathSVG.SetObjects count={item.artValue.val1} itemType="balls" />
                        <span className="text-4xl">+</span>
                        <MathSVG.SetObjects count={item.artValue.val2} itemType="balls" />
                     </div>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
                   {item.options.map((opt, i) => (
                     <div key={i} className="flex items-center gap-3">
                        <div className="w-8 h-8 border-2 border-black rounded-full flex items-center justify-center text-sm font-bold">{String.fromCharCode(97 + i)}</div>
